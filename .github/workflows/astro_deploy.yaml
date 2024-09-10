@@ -38,9 +38,8 @@ jobs:
   dev-push:
     if: github.ref == 'refs/heads/dev'
     env:
-      ## Sets DEV Deployment API key credentials as environment variables
-      ASTRONOMER_KEY_ID: ${{ secrets.DEV_ASTRONOMER_KEY_ID }}
-      ASTRONOMER_KEY_SECRET: ${{ secrets.DEV_ASTRONOMER_KEY_SECRET }}
+      ## Use Development API Token
+      ASTRO_API_TOKEN: ${{ secrets.ASTRO_API_TOKEN_DEV }}
 
     runs-on: ubuntu-latest
     needs: deployment-type
@@ -49,7 +48,7 @@ jobs:
         uses: actions/checkout@v3
 
       # If only DAGs changed do a DAG Deploy
-      - name: DAG Deploy to Astro
+      - name: DAG Deploy to Astro (dev)
         if: needs.deployment-type.outputs.DAGS_ONLY == 1
         run: |
           curl -sSL https://install.astronomer.io | sudo bash
@@ -57,7 +56,7 @@ jobs:
           astro deploy --dags
 
       # If any other files changed do a regular Deploy
-      - name: Image and DAG Deploy to Astro
+      - name: Image and DAG Deploy to Astro (dev)
         if: needs.deployment-type.outputs.DAGS_ONLY == 0
         run: |
           curl -sSL https://install.astronomer.io | sudo bash
@@ -66,9 +65,8 @@ jobs:
   prod-push:
     if: github.event.action == 'closed' && github.event.pull_request.merged == true
     env:
-      ## Sets PROD Deployment API key credentials as environment variables
-      ASTRONOMER_KEY_ID: ${{ secrets.PROD_ASTRONOMER_KEY_ID }}
-      ASTRONOMER_KEY_SECRET: ${{ secrets.PROD_ASTRONOMER_KEY_SECRET }}
+      ## Use Production API Token
+      ASTRO_API_TOKEN: ${{ secrets.ASTRO_API_TOKEN_PROD }}
 
     runs-on: ubuntu-latest
     needs: deployment-type
@@ -77,7 +75,7 @@ jobs:
         uses: actions/checkout@v3
 
       # If only DAGs changed do a DAG Deploy
-      - name: DAG Deploy to Astro
+      - name: DAG Deploy to Astro (prod)
         if: needs.deployment-type.outputs.DAGS_ONLY == 1
         run: |
           curl -sSL https://install.astronomer.io | sudo bash
@@ -85,7 +83,7 @@ jobs:
           astro deploy --dags
 
       # If any other files changed do a regular Deploy
-      - name: Image and DAG Deploy to Astro
+      - name: Image and DAG Deploy to Astro (prod)
         if: needs.deployment-type.outputs.DAGS_ONLY == 0
         run: |
           curl -sSL https://install.astronomer.io | sudo bash
