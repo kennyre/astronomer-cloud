@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     build-essential \
     libboost-all-dev \
+    libarrow-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar dependencias de Python (incluyendo pyarrow)
