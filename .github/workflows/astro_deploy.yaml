@@ -52,7 +52,7 @@ jobs:
       - name: DAG Deploy to Astro
         if: needs.deployment-type.outputs.DAGS_ONLY == 1
         run: |
-          curl -sSL https://install.astronomer.io | sudo bash -s -- v1.7.0
+          curl -sSL https://install.astronomer.io | sudo bash
           astro deployment update --dag-deploy enable --force
           astro deploy --dags
 
@@ -60,7 +60,7 @@ jobs:
       - name: Image and DAG Deploy to Astro
         if: needs.deployment-type.outputs.DAGS_ONLY == 0
         run: |
-          curl -sSL https://install.astronomer.io | sudo bash -s -- v1.7.0
+          curl -sSL https://install.astronomer.io | sudo bash
           astro deploy
 
   prod-push:
@@ -80,7 +80,7 @@ jobs:
       - name: DAG Deploy to Astro
         if: needs.deployment-type.outputs.DAGS_ONLY == 1
         run: |
-          curl -sSL https://install.astronomer.io | sudo bash -s -- v1.7.0
+          curl -sSL https://install.astronomer.io | sudo bash
           astro deployment update --dag-deploy enable --force
           astro deploy --dags
 
@@ -88,5 +88,5 @@ jobs:
       - name: Image and DAG Deploy to Astro
         if: needs.deployment-type.outputs.DAGS_ONLY == 0
         run: |
-          curl -sSL https://install.astronomer.io | sudo bash -s -- v1.7.0
+          curl -sSL https://install.astronomer.io | sudo bash
           astro deploy
