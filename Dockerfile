@@ -1,5 +1,6 @@
 FROM quay.io/astronomer/astro-runtime:12.1.0
 
+# Instalar cmake y otras dependencias necesarias
 RUN apt-get update && apt-get install -y \
     cmake \
     build-essential \
@@ -11,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     bison \
     && rm -rf /var/lib/apt/lists/*
+# Actualizar pip, setuptools y wheel antes de instalar dependencias
+RUN pip install --upgrade pip setuptools wheel
 
 # Instalar dependencias de Python (incluyendo pyarrow)
 COPY requirements.txt .
