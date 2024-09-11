@@ -8,7 +8,7 @@ from dags.icesi_airflow_api.utils.weather_api import run_weather_forecast_pipeli
 # Parámetros de configuración
 URL = 'https://smn.conagua.gob.mx/tools/GUI/webservices/index.php?method=3'
 AWS_CONN_ID = 'aws_conn_s3'
-S3_BUCKET = 'api-airflowt'
+S3_BUCKET = 'api-airflow'
 
 # Definimos el DAG usando el decorador @dag
 @dag(
