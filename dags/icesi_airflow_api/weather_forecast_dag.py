@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from airflow import DAG
 from airflow.decorators import dag, task
 from airflow.utils.dates import days_ago
@@ -14,8 +15,10 @@ S3_BUCKET = 'api-airflow'
 SNOWFLAKE_CONN_ID = 'snowflake_conn_id'
 QUERIES_BASE_PATH = os.path.join(os.path.dirname(__file__), 'queries')
 
-# Definir una variable universal para la fecha de ejecución
-date_str = '{{ ds }}'  # Plantilla Jinja para obtener la fecha de ejecución en formato 'YYYY-MM-DD'
+
+utc_now = datetime.utcnow()
+date_str = utc_now.strftime('%Y-%m-%d')
+
 
 # Definimos el DAG usando el decorador @dag
 @dag(
