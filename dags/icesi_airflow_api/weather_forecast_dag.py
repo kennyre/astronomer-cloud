@@ -43,6 +43,13 @@ def weather_forecast_dag():
             s3_bucket=S3_BUCKET,
             s3_key=s3_key_with_date
         )
+    
+    # Tarea para ejecutar una query que crea tabla
+    execute_snowflake_create_table = SnowflakeOperator(
+        task_id='execute_snowflake_create_table',
+        snowflake_conn_id=SNOWFLAKE_CONN_ID,
+        sql='create_table.sql'
+    )
 
     # Tarea para ejecutar una query en Snowflake usando el SnowflakeOperator
     execute_snowflake_query = SnowflakeOperator(
@@ -55,7 +62,7 @@ def weather_forecast_dag():
     )
     
     # Definir dependencias entre las tareas
-    fetch_and_save_weather_data() >> execute_snowflake_query
+    execute_snowflake_create_table >> fetch_and_save_weather_data() >> execute_snowflake_query
 
 # Instancia del DAG
 dag = weather_forecast_dag()
