@@ -3,7 +3,7 @@ create if not exists table clean_data.weather.calculo (
     max_temp float,
     promedio_temp float);
 
-insert into clean_data.weather.calculo  
+insert into {{params.name_table}}
 select 
 min(temp) as min_temp,
 max(temp) as max_temp,
