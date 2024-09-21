@@ -60,9 +60,19 @@ def weather_forecast_dag():
             'dt': date_str  # Parametro para la query
         }
     )
+
+    test_calculo = SnowflakeOperator(
+        task_id='test_calculo',
+        snowflake_conn_id=SNOWFLAKE_CONN_ID,
+        sql='test_calculo.sql',  # Ruta del archivo SQL dentro del template_searchpath
+        params={
+            'dt': date_str  # Parametro para la query,
+            'name_table': 'clean_data.weather.calculo'  
+        }
+    )
     
     # Definir dependencias entre las tareas
-    execute_snowflake_create_table >> fetch_and_save_weather_data() >> execute_snowflake_query
+    execute_snowflake_create_table >> fetch_and_save_weather_data() >> execute_snowflake_query >> test_calculo
 
 # Instancia del DAG
 dag = weather_forecast_dag()
