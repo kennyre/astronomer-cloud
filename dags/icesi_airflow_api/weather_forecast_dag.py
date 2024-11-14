@@ -3,66 +3,51 @@ from datetime import datetime
 from airflow import DAG
 from airflow.decorators import dag, task
 from airflow.utils.dates import days_ago
-from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator  # Import del operador de Snowflake
-
-import logging
+from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from dags.icesi_airflow_api.utils.weather_api import run_weather_forecast_pipeline
 
-# Parámetros de configuración
+# Definimos las configuraciones básicas para la ejecución
 URL = 'https://smn.conagua.gob.mx/tools/GUI/webservices/index.php?method=3'
-AWS_CONN_ID = 'aws_conn_s3'
-S3_BUCKET = 'api-airflow'
-SNOWFLAKE_CONN_ID = 'snowflake_conn_id'
+SNOWFLAKE_CONN_ID = 'snowflake_conn_id'  # ID de conexión configurado en Airflow
+DATABASE = 'nombre_de_tu_base_de_datos'  # Nombre de la base de datos en Snowflake
+SCHEMA = 'nombre_de_tu_esquema'          # Nombre del esquema en Snowflake
+TABLE = 'nombre_de_tu_tabla'              # Nombre de la tabla de destino en Snowflake
 QUERIES_BASE_PATH = os.path.join(os.path.dirname(__file__), 'queries')
 
 
-utc_now = datetime.utcnow()
-date_str = utc_now.strftime('%Y-%m-%d')
-
-
-# Definimos el DAG usando el decorador @dag
+# Definimos el DAG usando el decorador @dag de Airflow
 @dag(
-    schedule_interval='@daily',  # Ejecutar diariamente
-    start_date=days_ago(1),      # Iniciar hace un día
-    catchup=False,               # Evitar la ejecución de tareas atrasadas
+    schedule_interval='@daily',  # Configuramos el DAG para que se ejecute todos los días
+    start_date=days_ago(1),      # Se iniciará desde el día anterior para pruebas
+    catchup=False,               # Evitamos la ejecución de tareas atrasadas
     default_args={'owner': 'airflow', 'retries': 1},
-    tags=['weather', 's3'],      # Etiquetas para categorizar el DAG
-    template_searchpath=QUERIES_BASE_PATH
+    tags=['weather', 'snowflake'],  # Etiquetas para categorizar el DAG en Airflow
+    template_searchpath=QUERIES_BASE_PATH  # Carpeta donde Airflow busca archivos SQL
 )
 def weather_forecast_dag():
     
-    # Definimos una tarea con el decorador @task
+    # Tarea principal que obtiene los datos de clima y los guarda en Snowflake
     @task()
     def fetch_and_save_weather_data():
-        s3_key_with_date = f'weather_data/weather_data_{date_str}.csv'
-        
-        # Ejecutar el pipeline con el nuevo nombre de archivo
+        # Ejecutamos el pipeline para obtener los datos del clima y guardarlos en Snowflake
         run_weather_forecast_pipeline(
             url=URL,
-            aws_conn_id=AWS_CONN_ID,
-            s3_bucket=S3_BUCKET,
-            s3_key=s3_key_with_date
+            snowflake_conn_id=SNOWFLAKE_CONN_ID,
+            database=DATABASE,
+            schema=SCHEMA,
+            table=TABLE
         )
-    
-    # Tarea para ejecutar una query que crea tabla
+
+    # Tarea para crear la tabla en Snowflake si no existe
     execute_snowflake_create_table = SnowflakeOperator(
         task_id='execute_snowflake_create_table',
         snowflake_conn_id=SNOWFLAKE_CONN_ID,
-        sql='create_table.sql'
-    )
-
-    # Tarea para ejecutar una query en Snowflake usando el SnowflakeOperator
-    execute_snowflake_query = SnowflakeOperator(
-        task_id='execute_snowflake_query',
-        snowflake_conn_id=SNOWFLAKE_CONN_ID,
-        sql='weather_forecast_query.sql',  # Ruta del archivo SQL dentro del template_searchpath
-        params={
-            'dt': date_str  # Parametro para la query
-        }
+        sql='create_table.sql'  # Este archivo SQL debe contener el script de creación de tabla
     )
     
-    # Definir dependencias entre las tareas
-    execute_snowflake_create_table >> fetch_and_save_weather_data() >> execute_snowflake_query
+    # Establecemos el flujo de tareas
+    # Primero creamos la tabla, luego cargamos los datos y finalmente ejecutamos la consulta adicional
+    execute_snowflake_create_table >> fetch_and_save_weather_data()
 
-# Instancia del DAG
+# Instanciamos el DAG
 dag = weather_forecast_dag()
