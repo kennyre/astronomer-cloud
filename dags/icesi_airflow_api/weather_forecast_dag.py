@@ -37,17 +37,10 @@ def weather_forecast_dag():
             schema=SCHEMA,
             table=TABLE
         )
-
-    # Tarea para crear la tabla en Snowflake si no existe
-    execute_snowflake_create_table = SnowflakeOperator(
-        task_id='execute_snowflake_create_table',
-        snowflake_conn_id=SNOWFLAKE_CONN_ID,
-        sql='create_table.sql'  # Este archivo SQL debe contener el script de creación de tabla
-    )
     
     # Establecemos el flujo de tareas
     # Primero creamos la tabla, luego cargamos los datos y finalmente ejecutamos la consulta adicional
-    execute_snowflake_create_table >> fetch_and_save_weather_data()
+    fetch_and_save_weather_data()
 
 # Instanciamos el DAG
 dag = weather_forecast_dag()
