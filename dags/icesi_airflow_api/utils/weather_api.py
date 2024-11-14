@@ -50,9 +50,36 @@ class WeatherForecast:
     def save_to_temp_csv(self, df):
         # Guardamos el DataFrame en un archivo CSV temporal sin encabezados (header=False)
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
-        df.to_csv(temp_file.name, index=False, header=False)
+        df.to_csv(temp_file.name, index=False, header=True)  # Guardamos con encabezado para crear la tabla
         logging.info(f"Datos guardados en archivo temporal: {temp_file.name}")
         return temp_file.name
+
+    def create_table_in_snowflake(self, df):
+        # Creamos un hook de Snowflake
+        snowflake_hook = SnowflakeHook(snowflake_conn_id=self.snowflake_conn_id)
+        conn = snowflake_hook.get_conn()
+        cursor = conn.cursor()
+
+        # Construimos la instrucción SQL para crear la tabla según el encabezado y tipos de datos del DataFrame
+        columns = []
+        for column in df.columns:
+            if pd.api.types.is_integer_dtype(df[column]):
+                col_type = "INTEGER"
+            elif pd.api.types.is_float_dtype(df[column]):
+                col_type = "FLOAT"
+            else:
+                col_type = "TEXT"
+            columns.append(f"{column} {col_type}")
+
+        # Creamos la tabla en Snowflake con el SQL generado
+        create_table_sql = f"CREATE TABLE IF NOT EXISTS {self.table} ({', '.join(columns)});"
+        cursor.execute(f"USE DATABASE {self.database}")
+        cursor.execute(f"USE SCHEMA {self.schema}")
+        cursor.execute(create_table_sql)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        logging.info(f"Tabla {self.table} creada en Snowflake.")
 
     def load_to_snowflake(self, file_path):
         try:
@@ -102,6 +129,8 @@ def run_weather_forecast_pipeline(url, snowflake_conn_id, database, schema, tabl
     # Obtenemos los datos del clima
     data = weather_forecast.fetch_weather_data()
     if data is not None:
+        # Creamos la tabla automáticamente según el esquema de los datos
+        weather_forecast.create_table_in_snowflake(data)
         # Guardamos los datos en un archivo CSV temporal
         temp_file_path = weather_forecast.save_to_temp_csv(data)
         # Cargamos el archivo CSV en Snowflake
