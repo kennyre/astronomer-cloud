@@ -1,11 +1,9 @@
 name: Astronomer CI - Deploy code (Multiple Branches)
 on:
   push:
-    branches: [dev]
-  pull_request:
-    types:
-      - closed
-    branches: [main]
+    branches: 
+      - dev
+      - main
 
 jobs:
   deployment-type:
@@ -13,12 +11,12 @@ jobs:
     outputs:
       DAGS_ONLY: ${{ steps.deployment-type.outputs.DAGS_ONLY }}
     steps:
-    - name: checkout repo
+    - name: Checkout Repo
       uses: actions/checkout@v3
       with:
         fetch-depth: 2
 
-    # Determine if only DAGs have changes
+    # Determina si solo han cambiado archivos de DAGs
     - name: Get Deployment Type
       id: deployment-type
       run: |
@@ -44,10 +42,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: deployment-type
     steps:
-      - name: checkout repo
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
-      # If only DAGs changed do a DAG Deploy
+      # Instalar dependencias desde requirements.txt
+      - name: Install Requirements
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      # Si solo cambiaron DAGs, hacer un despliegue de DAGs
       - name: DAG Deploy to Astro (dev)
         if: needs.deployment-type.outputs.DAGS_ONLY == 1
         run: |
@@ -55,15 +60,15 @@ jobs:
           astro deployment update --dag-deploy enable --force
           astro deploy --dags
 
-      # If any other files changed do a regular Deploy
+      # Si cambiaron otros archivos, hacer un despliegue completo
       - name: Image and DAG Deploy to Astro (dev)
         if: needs.deployment-type.outputs.DAGS_ONLY == 0
         run: |
           curl -sSL https://install.astronomer.io | sudo bash
           astro deploy
 
-  prod-push:
-    if: github.event.action == 'closed' && github.event.pull_request.merged == true
+  main-push:
+    if: github.ref == 'refs/heads/main'
     env:
       ## Use Production API Token
       ASTRO_API_TOKEN: ${{ secrets.ASTRO_API_TOKEN_PROD }}
@@ -71,10 +76,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: deployment-type
     steps:
-      - name: checkout repo
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
-      # If only DAGs changed do a DAG Deploy
+      # Instalar dependencias desde requirements.txt
+      - name: Install Requirements
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      # Si solo cambiaron DAGs, hacer un despliegue de DAGs
       - name: DAG Deploy to Astro (prod)
         if: needs.deployment-type.outputs.DAGS_ONLY == 1
         run: |
@@ -82,7 +94,7 @@ jobs:
           astro deployment update --dag-deploy enable --force
           astro deploy --dags
 
-      # If any other files changed do a regular Deploy
+      # Si cambiaron otros archivos, hacer un despliegue completo
       - name: Image and DAG Deploy to Astro (prod)
         if: needs.deployment-type.outputs.DAGS_ONLY == 0
         run: |
