@@ -56,34 +56,33 @@ class WeatherForecast:
 
     def load_to_snowflake(self, file_path):
         try:
-            # Conectamos a Snowflake utilizando los parámetros dados
+            # Conectar a Snowflake
             conn = snowflake.connector.connect(**self.snowflake_conn_params)
             cursor = conn.cursor()
 
-            # Especificamos la base de datos y el esquema donde queremos cargar los datos
+            # Establecer base de datos y esquema
             cursor.execute(f"USE DATABASE {self.database}")
             cursor.execute(f"USE SCHEMA {self.schema}")
 
-            # Subimos el archivo temporal a una etapa de Snowflake para que pueda ser importado
+            # Subir archivo a la etapa de Snowflake usando el nombre dinámico del archivo
             stage_name = f"@%{self.table}"
             cursor.execute(f"PUT file://{file_path} {stage_name}")
 
-            # Construimos y ejecutamos la consulta COPY INTO para cargar los datos en la tabla
             copy_into_query = f"""
                 COPY INTO {self.table}
-                FROM {stage_name}/datos_snowflake_batch.csv
+                FROM {stage_name}/{os.path.basename(file_path)}
                 FILE_FORMAT = (TYPE = 'CSV', FIELD_OPTIONALLY_ENCLOSED_BY = '"')
                 ON_ERROR='CONTINUE'
             """
             cursor.execute(copy_into_query)
 
-            # Después de copiar los datos, eliminamos el archivo de la etapa en Snowflake
+            # Eliminar el archivo de la etapa de Snowflake
             cursor.execute(f"REMOVE {stage_name}")
             logging.info("Datos cargados en Snowflake y archivo eliminado de la etapa.")
             cursor.close()
             conn.close()
 
-            # Finalmente, eliminamos el archivo temporal local
+            # Eliminar el archivo temporal local
             os.remove(file_path)
             logging.info(f"Archivo temporal eliminado: {file_path}")
             return True
@@ -91,6 +90,7 @@ class WeatherForecast:
             # Si ocurre algún error durante la carga en Snowflake, lo registramos
             logging.error(f"Error al cargar datos en Snowflake: {str(e)}")
             return False
+
 
 def run_weather_forecast_pipeline(url, snowflake_conn_params, database, schema, table):
     # Creamos una instancia de WeatherForecast con los parámetros necesarios
